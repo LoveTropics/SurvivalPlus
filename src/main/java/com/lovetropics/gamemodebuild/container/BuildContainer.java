@@ -3,12 +3,11 @@ package com.lovetropics.gamemodebuild.container;
 import com.google.common.base.Strings;
 import com.lovetropics.gamemodebuild.GBConfigs;
 import com.lovetropics.gamemodebuild.GamemodeBuild;
-import com.lovetropics.gamemodebuild.message.GBNetwork;
 import com.lovetropics.gamemodebuild.message.SetScrollMessage;
 import com.lovetropics.gamemodebuild.state.GBPlayerStore;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.MenuScreens;
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
@@ -20,37 +19,30 @@ import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.extensions.IForgeMenuType;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.common.extensions.IMenuTypeExtension;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.registries.DeferredHolder;
+import net.neoforged.neoforge.registries.DeferredRegister;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Locale;
 
-@EventBusSubscriber(modid = GamemodeBuild.MODID, bus = Bus.MOD, value = Dist.CLIENT)
 public class BuildContainer extends AbstractContainerMenu {
 	public static final int WIDTH = 9;
 	public static final int HEIGHT = 5;
 
-	public static final DeferredRegister<MenuType<?>> REGISTER = DeferredRegister.create(ForgeRegistries.MENU_TYPES, GamemodeBuild.MODID);
+	public static final DeferredRegister<MenuType<?>> REGISTER = DeferredRegister.create(Registries.MENU, GamemodeBuild.MODID);
 
-	public static final RegistryObject<MenuType<BuildContainer>> TYPE = REGISTER.register("container", () -> IForgeMenuType.create(BuildContainer::new));
+	public static final DeferredHolder<MenuType<?>, MenuType<BuildContainer>> TYPE = REGISTER.register("container", () -> IMenuTypeExtension.create(BuildContainer::new));
 
 	private static final ThreadLocal<Boolean> SUPPRESS_SEND_CHANGES = new ThreadLocal<>();
 	private boolean takeStacks = false;
 
-	@SubscribeEvent
-	public static void onClientSetup(FMLClientSetupEvent event) {
-		event.enqueueWork(() -> MenuScreens.register(TYPE.get(), BuildScreen::new));
-	}
-	
 	public static Component title() {
 		return Component.literal("Build Mode");
 	}
@@ -131,7 +123,7 @@ public class BuildContainer extends AbstractContainerMenu {
 			}
 		}
 
-		@OnlyIn(Dist.CLIENT)
+		@OnlyIn(Dist.CLIENT) // TODO - get rid of onlyin
 		public BitSet applyFilter(String filter) {
 			BitSet filteredSlots = new BitSet();
 			Locale locale = Minecraft.getInstance().getLanguageManager().getJavaLocale();
@@ -235,7 +227,7 @@ public class BuildContainer extends AbstractContainerMenu {
 			this.scrollOffset = scrollOffset;
 			
 			if (this.player.level().isClientSide) {
-				GBNetwork.CHANNEL.sendToServer(new SetScrollMessage(scrollOffset));
+				PacketDistributor.sendToServer(new SetScrollMessage(scrollOffset));
 			}
 			
 			for (Slot slot : this.slots) {
@@ -291,7 +283,7 @@ public class BuildContainer extends AbstractContainerMenu {
 		}
 		this.takeStacks = clickTypeIn == ClickType.SWAP;
 		ItemStack oldCursor = getCarried().copy();
-		if ((clickTypeIn == ClickType.PICKUP || clickTypeIn == ClickType.PICKUP_ALL) && ItemStack.isSameItemSameTags(getSlot(slotId).getItem(), oldCursor)) {
+		if ((clickTypeIn == ClickType.PICKUP || clickTypeIn == ClickType.PICKUP_ALL) && ItemStack.isSameItemSameComponents(getSlot(slotId).getItem(), oldCursor)) {
 			// Allow pulling single items into an existing stack
 			ItemStack ret = oldCursor.copy();
 			if (ret.getCount() < ret.getMaxStackSize()) {
@@ -303,7 +295,7 @@ public class BuildContainer extends AbstractContainerMenu {
 		super.clicked(slotId, dragType, clickTypeIn, player);
 		ItemStack newCursor = getCarried();
 		if (!oldCursor.isEmpty() && GBStackMarker.isMarked(oldCursor) && GBStackMarker.isMarked(newCursor)) {
-			if (!ItemStack.isSameItemSameTags(oldCursor, newCursor)) {
+			if (!ItemStack.isSameItemSameComponents(oldCursor, newCursor)) {
 				setCarried(ItemStack.EMPTY);
 			} else {
 				newCursor.setCount(Math.max(oldCursor.getCount(), newCursor.getCount()));
@@ -325,19 +317,18 @@ public class BuildContainer extends AbstractContainerMenu {
 			return ItemStack.EMPTY;
 		}
 		
-		if (slot != null && slot.hasItem()) {
+		if (slot.hasItem()) {
 			ItemStack stack = slot.getItem();
 			if (index < 5 * 9) {
 				stack.setCount(64);
 				this.moveItemStackTo(stack, 5 * 9, this.slots.size(), false);
-				return ItemStack.EMPTY;
-			} else {
+            } else {
 				if (GBStackMarker.isMarked(stack)) {
 					slot.set(ItemStack.EMPTY);
 				}
-				return ItemStack.EMPTY;
-			}
-		}
+            }
+            return ItemStack.EMPTY;
+        }
 		
 		return ItemStack.EMPTY;
 	}

@@ -1,26 +1,28 @@
 package com.lovetropics.gamemodebuild.message;
 
+import com.lovetropics.gamemodebuild.GamemodeBuild;
 import com.lovetropics.gamemodebuild.container.BuildContainer;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.BitSet;
-import java.util.function.Supplier;
 
-public record UpdateFilterMessage(BitSet filter) {
-	public UpdateFilterMessage(FriendlyByteBuf input) {
-		this(BitSet.valueOf(input.readByteArray()));
-	}
+public record UpdateFilterMessage(BitSet filter) implements CustomPacketPayload {
+	public static final Type<UpdateFilterMessage> TYPE = new Type<>(GamemodeBuild.rl("update_filter"));
+	public static final StreamCodec<RegistryFriendlyByteBuf, UpdateFilterMessage> CODEC = ByteBufCodecs.byteArray(Integer.MAX_VALUE)
+			.map(BitSet::valueOf, BitSet::toByteArray).map(UpdateFilterMessage::new, UpdateFilterMessage::filter).cast();
 
-	public void serialize(FriendlyByteBuf output) {
-		output.writeByteArray(filter.toByteArray());
-	}
-
-	public void handle(Supplier<NetworkEvent.Context> ctx) {
-		ServerPlayer sender = ctx.get().getSender();
-		if (sender != null && sender.containerMenu instanceof BuildContainer container) {
+	public void handle(IPayloadContext ctx) {
+		if (ctx.player().containerMenu instanceof BuildContainer container) {
 			container.setFilter(filter);
 		}
+	}
+
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
 	}
 }

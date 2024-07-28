@@ -1,21 +1,20 @@
 package com.lovetropics.gamemodebuild.container;
 
-import com.lovetropics.gamemodebuild.GamemodeBuild;
-import com.lovetropics.gamemodebuild.message.GBNetwork;
+import com.lovetropics.gamemodebuild.client.BuildScreen;
 import com.lovetropics.gamemodebuild.message.OpenBuildInventoryMessage;
 import com.lovetropics.gamemodebuild.state.GBClientState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.event.entity.item.ItemTossEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.event.entity.item.ItemTossEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
-@EventBusSubscriber(modid = GamemodeBuild.MODID, bus = Bus.FORGE, value = Dist.CLIENT)
+@EventBusSubscriber(value = Dist.CLIENT)
 public final class PlayerInventoryHooks {
 	@SubscribeEvent
 	public static void onOpenScreen(ScreenEvent.Opening event) {
@@ -27,7 +26,7 @@ public final class PlayerInventoryHooks {
 		}
 		
 		if (event.getScreen() instanceof InventoryScreen) {
-			GBNetwork.CHANNEL.sendToServer(new OpenBuildInventoryMessage());
+			PacketDistributor.sendToServer(new OpenBuildInventoryMessage());
 
 			final Inventory inventory = player.getInventory();
 			BuildContainer container = new BuildContainer(0, inventory, player, null);

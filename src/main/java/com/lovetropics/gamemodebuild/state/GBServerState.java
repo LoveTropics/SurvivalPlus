@@ -2,7 +2,6 @@ package com.lovetropics.gamemodebuild.state;
 
 import com.lovetropics.gamemodebuild.GBConfigs;
 import com.lovetropics.gamemodebuild.GamemodeBuild;
-import com.lovetropics.gamemodebuild.message.GBNetwork;
 import com.lovetropics.gamemodebuild.message.SetActiveMessage;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanMap;
 import it.unimi.dsi.fastutil.objects.Reference2BooleanOpenHashMap;
@@ -10,12 +9,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
-@Mod.EventBusSubscriber(modid = GamemodeBuild.MODID)
+@EventBusSubscriber
 public final class GBServerState {
 	public static void setGloballyEnabled(MinecraftServer server, boolean enabled) {
 		if (enabled == isGloballyEnabled()) {
@@ -79,7 +78,7 @@ public final class GBServerState {
 
 	public static void sendPlayerState(ServerPlayer player) {
 		SetActiveMessage message = new SetActiveMessage(isActiveFor(player));
-		GBNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), message);
+		PacketDistributor.sendToPlayer(player, message);
 	}
 
 	@SubscribeEvent

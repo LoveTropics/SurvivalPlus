@@ -1,40 +1,33 @@
 package com.lovetropics.gamemodebuild.message;
 
+import com.lovetropics.gamemodebuild.GamemodeBuild;
 import com.lovetropics.gamemodebuild.state.GBClientState;
 import com.lovetropics.gamemodebuild.state.GBServerState;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.fml.DistExecutor;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record SetActiveMessage(boolean active) implements CustomPacketPayload {
+    public static final Type<SetActiveMessage> TYPE = new Type<>(GamemodeBuild.rl("set_active"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, SetActiveMessage> CODEC = ByteBufCodecs.BOOL
+            .map(SetActiveMessage::new, SetActiveMessage::active).cast();
 
-public record SetActiveMessage(boolean active) {
-    public SetActiveMessage(FriendlyByteBuf input) {
-        this(input.readBoolean());
-    }
-
-    public void serialize(FriendlyByteBuf output) {
-        output.writeBoolean(active);
-    }
-
-    public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
-        NetworkEvent.Context ctx = ctxSupplier.get();
-        if (ctx.getDirection() == NetworkDirection.PLAY_TO_SERVER) {
-            ServerPlayer player = ctx.getSender();
-            if (player != null) {
+    public void handle(IPayloadContext ctx) {
+        if (ctx.flow() == PacketFlow.SERVERBOUND) {
+            if (ctx.player() instanceof ServerPlayer player) {
                 GBServerState.requestActive(player, active);
             }
-        } else if (ctx.getDirection() == NetworkDirection.PLAY_TO_CLIENT) {
-            DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> setClientState(active));
+        } else {
+            GBClientState.setActive(active);
         }
     }
 
-    @OnlyIn(Dist.CLIENT)
-    private static void setClientState(boolean state) {
-        GBClientState.setActive(state);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 }

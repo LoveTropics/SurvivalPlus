@@ -1,7 +1,7 @@
 modLoader="javafml"
-loaderVersion="[36,)"
+loaderVersion="[1,)"
 issueTrackerURL="https://github.com/LoveTropics/GamemodeBuild"
-license="ARR"
+license="Mozilla Public License Version 2.0"
 
 [[mods]]
 modId="gamemodebuild"
@@ -12,16 +12,20 @@ authors="tterrag, Gegy"
 description='''
 Creative mode without creative. Great for collaborative public building.
 '''
+
 [[dependencies.gamemodebuild]]
-    modId="forge"
-    mandatory=true
-    versionRange="[47,)"
+    modId="neoforge"
+    type="required"
+    versionRange="[21.0.0,)"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.gamemodebuild]]
     modId="minecraft"
-    mandatory=true
-    versionRange="[1.20,)"
+    type="required"
+    versionRange="[1.21,)"
     ordering="NONE"
     side="BOTH"
+
+[[mixins]]
+config="gamemodebuild.mixins.json"

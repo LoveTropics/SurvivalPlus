@@ -1,13 +1,28 @@
 package com.lovetropics.gamemodebuild.message;
 
 import com.lovetropics.gamemodebuild.GBConfigs;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import com.lovetropics.gamemodebuild.GamemodeBuild;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record ListUpdateMessage(Operation operation, boolean whitelist, String name, String entry) implements CustomPacketPayload {
+	public static final Type<ListUpdateMessage> TYPE = new Type<>(GamemodeBuild.rl("update_list"));
+	public static final StreamCodec<RegistryFriendlyByteBuf, ListUpdateMessage> CODEC = StreamCodec.composite(
+			ByteBufCodecs.idMapper(i -> Operation.values()[i], Operation::ordinal),
+			ListUpdateMessage::operation,
+			ByteBufCodecs.BOOL,
+			ListUpdateMessage::whitelist,
+			ByteBufCodecs.STRING_UTF8,
+			ListUpdateMessage::name,
+			ByteBufCodecs.STRING_UTF8,
+			ListUpdateMessage::entry,
+			ListUpdateMessage::new
+	);
 
-public record ListUpdateMessage(Operation operation, boolean whitelist, String name, String entry) {
-	public void handle(Supplier<NetworkEvent.Context> ctx) {
+	public void handle(IPayloadContext context) {
 		switch (operation) {
 			case ADD -> {
 				if (whitelist) {
@@ -35,34 +50,10 @@ public record ListUpdateMessage(Operation operation, boolean whitelist, String n
 
 	public enum Operation {
 		ADD, REMOVE, CLEAR;
-
-		public byte serialize() {
-			return (byte) switch (this) {
-				case ADD -> 1;
-				case REMOVE -> 2;
-				case CLEAR -> 3;
-			};
-		}
-
-		public static Operation deserialize(byte data) {
-			return switch (data) {
-				case 1 -> ADD;
-				case 2 -> REMOVE;
-				case 3 -> CLEAR;
-				default -> throw new IllegalArgumentException("Operation can only be a value from 1 to 3");
-			};
-		}
 	}
 
-	public ListUpdateMessage(FriendlyByteBuf input) {
-		this(Operation.deserialize(input.readByte()), input.readBoolean(), input.readNullable(b -> b.readUtf(64)), input.readNullable(b -> b.readUtf(100)));
-	}
-
-	public void serialize(FriendlyByteBuf output) {
-		output.writeByte(operation.serialize());
-		output.writeBoolean(whitelist);
-
-		output.writeNullable(name, (b, s) -> b.writeUtf(s, 64));
-		output.writeNullable(entry, (b, s) -> b.writeUtf(s, 100));
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
 	}
 }

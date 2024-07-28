@@ -1,6 +1,5 @@
 package com.lovetropics.gamemodebuild;
 
-import com.lovetropics.gamemodebuild.mixin.CreativeModeTabAccessor;
 import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
@@ -11,15 +10,14 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.SingleKeyCache;
 import net.minecraft.world.flag.FeatureFlagSet;
-import net.minecraft.world.item.*;
-import net.minecraftforge.common.util.MutableHashedLinkedMap;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.fml.ModLoader;
-import org.apache.commons.lang3.Validate;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackLinkedSet;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -53,14 +51,14 @@ public class ItemFilter {
 	}
 	
 	private static Predicate<Item> parsePredicate(String predicate) {
-		Validate.notNull(predicate);
+		Objects.requireNonNull(predicate);
 		if ("*".equals(predicate)) {
 			return item -> true;
 		} else if (predicate.startsWith("#")) {
-			final ResourceLocation tagLocation = new ResourceLocation(predicate.substring(1));
+			final ResourceLocation tagLocation = ResourceLocation.parse(predicate.substring(1));
 			return new TagFilter(TagKey.create(Registries.ITEM, tagLocation));
 		} else {
-			final ResourceLocation location = new ResourceLocation(predicate);
+			final ResourceLocation location = ResourceLocation.parse(predicate);
 			return new ItemTypeFilter(ResourceKey.create(Registries.ITEM, location));
 		}
 	}
@@ -84,7 +82,7 @@ public class ItemFilter {
 			return List.of();
 		}
 
-		Set<ItemStack> items = ItemStackLinkedSet.createTypeAndTagSet();
+		Set<ItemStack> items = ItemStackLinkedSet.createTypeAndComponentsSet();
 		CreativeModeTab.Output output = createFilteredOutput(items);
 
 		CreativeModeTab.ItemDisplayParameters parameters = new CreativeModeTab.ItemDisplayParameters(enabledFeatures, true, registryAccess);
@@ -100,13 +98,8 @@ public class ItemFilter {
 
 	// We have to invoke this logic ourselves, as Forge hooks the Vanilla path in such a way that it classloads client-side code
 	private static void generateItems(ResourceKey<CreativeModeTab> tabKey, CreativeModeTab tab, CreativeModeTab.ItemDisplayParameters parameters, CreativeModeTab.Output output) {
-		CreativeModeTab.DisplayItemsGenerator originalGenerator = ((CreativeModeTabAccessor) tab).getDisplayItemsGenerator();
-
-		MutableHashedLinkedMap<ItemStack, CreativeModeTab.TabVisibility> entries = new MutableHashedLinkedMap<>(ItemStackLinkedSet.TYPE_AND_TAG, (key, left, right) -> CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS);
-		originalGenerator.accept(parameters, entries::put);
-		ModLoader.get().postEvent(new BuildCreativeModeTabContentsEvent(tab, tabKey, parameters, entries));
-
-		entries.forEach(e -> output.accept(e.getKey()));
+		tab.buildContents(parameters);
+		tab.getDisplayItems().forEach(output::accept);
 	}
 
 	private CreativeModeTab.Output createFilteredOutput(final Set<ItemStack> items) {

@@ -1,9 +1,9 @@
 plugins {
+    id 'java-library'
     id 'eclipse'
     id 'idea'
-    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
-    id 'org.parchmentmc.librarian.forgegradle' version '1.+'
-    id 'org.spongepowered.mixin' version '0.7.+'
+    id 'maven-publish'
+    id 'net.neoforged.moddev' version '1.0.14'
 }
 
 ext.buildnumber = 0
@@ -20,65 +20,43 @@ base {
     archivesName = 'GamemodeBuild'
 }
 
-java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
-minecraft {
-    mappings channel: 'parchment', version: parchment_version
+neoForge {
+    version = project.neo_version
+
+    parchment {
+        mappingsVersion = project.parchment_mappings_version
+        minecraftVersion = project.parchment_minecraft_version
+    }
+	
+	mods {
+		gamemodebuild {
+			sourceSet sourceSets.main
+		}
+	}
     
     runs {
-        configureEach {
-            copyIdeResources = true
-            workingDirectory project.file('run')
-
-            property 'forge.logging.console.level', 'info'
-
-            mods {
-                gamemodebuild {
-                    source sourceSets.main
-                }
-            }
-        }
-
         client {
-        	taskName 'gb_client'
+        	client()
         }
 
         server {
-        	taskName 'gb_server'
+        	server()
         }
 
         data {
-        	taskName 'gb_data'
+        	data()
 
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
-            property 'forge.logging.console.level', 'debug'
+            systemProperty 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            systemProperty 'forge.logging.console.level', 'debug'
 
-            args '--mod', 'gamemodebuild', '--all', '--output', file('src/generated/resources/')
+            programArguments.addAll '--mod', 'gamemodebuild', '--all', '--output', file('src/generated/resources/').absolutePath
         }
-    }
-}
-
-mixin {
-    // MixinGradle Settings
-    add sourceSets.main, 'gamemodebuild.refmap.json'
-    config 'gamemodebuild.mixins.json'
-}
-
-jarJar.enable()
-dependencies {
-    minecraft "net.minecraftforge:forge:$minecraft_version-$forge_version"
-    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
-
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.2.0-rc.5"))
-    implementation(jarJar("io.github.llamalad7:mixinextras-forge:0.2.0-rc.5")) {
-        jarJar.ranged(it, "[0.2.0-rc.5,)")
     }
 }
 
 tasks.named('jar', Jar).configure {
-    finalizedBy 'reobfJar'
-    archiveClassifier.set('slim')
-
     manifest {
         attributes([
                 "Specification-Title": "gamemodebuild",
@@ -98,7 +76,7 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
 }

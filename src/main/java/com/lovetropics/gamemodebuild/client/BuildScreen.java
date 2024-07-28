@@ -1,7 +1,7 @@
-package com.lovetropics.gamemodebuild.container;
+package com.lovetropics.gamemodebuild.client;
 
 import com.lovetropics.gamemodebuild.GamemodeBuild;
-import com.lovetropics.gamemodebuild.message.GBNetwork;
+import com.lovetropics.gamemodebuild.container.BuildContainer;
 import com.lovetropics.gamemodebuild.message.UpdateFilterMessage;
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,15 +12,16 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.CommonColors;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.BitSet;
-import java.util.Objects;
 
 public class BuildScreen extends AbstractContainerScreen<BuildContainer> {
 
-	private static final ResourceLocation TEXTURE = new ResourceLocation(GamemodeBuild.MODID, "textures/gui/menu.png");
+	private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(GamemodeBuild.MODID, "textures/gui/menu.png");
 
-	private static final ResourceLocation TABS = new ResourceLocation("textures/gui/container/creative_inventory/tabs.png");
+	private static final ResourceLocation TABS = ResourceLocation.withDefaultNamespace("textures/gui/container/creative_inventory/tab_items.png");
+	private static final ResourceLocation SCROLLER = ResourceLocation.withDefaultNamespace("container/creative_inventory/scroller");
 
 	private EditBox searchField;
 
@@ -54,12 +55,6 @@ public class BuildScreen extends AbstractContainerScreen<BuildContainer> {
 	}
 
 	@Override
-	protected void containerTick() {
-		super.containerTick();
-		searchField.tick();
-	}
-
-	@Override
 	public boolean keyPressed(final int keyCode, final int scanCode, final int modifiers) {
 		if (searchField.keyPressed(keyCode, scanCode, modifiers)) {
 			return true;
@@ -71,13 +66,13 @@ public class BuildScreen extends AbstractContainerScreen<BuildContainer> {
 
 	private void updateSearch(final String searchFilter) {
 		final BitSet filteredSlots = menu.applyFilter(searchFilter);
-		GBNetwork.CHANNEL.sendToServer(new UpdateFilterMessage(filteredSlots));
+		PacketDistributor.sendToServer(new UpdateFilterMessage(filteredSlots));
 		updateScroll(scrollAmount); // Refresh scrollbar
 	}
 
 	@Override
 	public void render(final GuiGraphics graphics, final int mouseX, final int mouseY, final float partialTicks) {
-		renderBackground(graphics);
+		renderBackground(graphics, mouseX, mouseY, partialTicks);
 		super.render(graphics, mouseX, mouseY, partialTicks);
 		renderTooltip(graphics, mouseX, mouseY);
 	}
@@ -93,15 +88,15 @@ public class BuildScreen extends AbstractContainerScreen<BuildContainer> {
 
 		if (menu.canScroll()) {
 			final Rect2i rect = scrollRect();
-			graphics.blit(TABS, rect.left, rect.top, 232, 0, rect.width, rect.height);
+			graphics.blitSprite(SCROLLER, rect.left, rect.top, rect.width, rect.height);
 		}
 	}
 
 	@Override
-	public boolean mouseScrolled(final double x, final double y, final double amount) {
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
 		if (menu.canScroll()) {
 			final int scrollHeight = menu.scrollHeight();
-			updateScroll((float) (scrollAmount - amount / scrollHeight));
+			updateScroll((float) (scrollAmount - scrollY / scrollHeight));
 			return true;
 		}
 		return false;

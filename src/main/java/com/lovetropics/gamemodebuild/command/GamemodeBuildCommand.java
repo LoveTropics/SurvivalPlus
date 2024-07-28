@@ -3,7 +3,6 @@ package com.lovetropics.gamemodebuild.command;
 import com.lovetropics.gamemodebuild.GBConfigs;
 import com.lovetropics.gamemodebuild.GamemodeBuild;
 import com.lovetropics.gamemodebuild.command.ItemFilterArgument.Result;
-import com.lovetropics.gamemodebuild.message.GBNetwork;
 import com.lovetropics.gamemodebuild.message.ListUpdateMessage;
 import com.lovetropics.gamemodebuild.state.GBPlayerStore;
 import com.lovetropics.gamemodebuild.state.GBServerState;
@@ -14,11 +13,12 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.commands.CommandRuntimeException;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
@@ -26,7 +26,7 @@ import net.minecraft.commands.arguments.selector.EntitySelector;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraftforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -36,7 +36,8 @@ import static net.minecraft.commands.Commands.literal;
 
 public final class GamemodeBuildCommand {
 	private static final SimpleCommandExceptionType FILTER_DID_NOT_EXIST = new SimpleCommandExceptionType(Component.literal("That filter did not exist!"));
-	
+	private static final DynamicCommandExceptionType SAME_STATE = new DynamicCommandExceptionType(ac -> Component.literal(GamemodeBuild.NAME + " is already " + ((boolean) ac ? "enabled" : "disabled")));
+
 	private static RequiredArgumentBuilder<CommandSourceStack, EntitySelector> getPlayerArg() {
 		return argument("player", EntityArgument.players());
 	}
@@ -100,13 +101,13 @@ public final class GamemodeBuildCommand {
 	}
 	// @formatter:on
 	
-	private static int enable(CommandContext<CommandSourceStack> ctx, @Nullable Collection<ServerPlayer> players, boolean state) {
+	private static int enable(CommandContext<CommandSourceStack> ctx, @Nullable Collection<ServerPlayer> players, boolean state) throws CommandSyntaxException {
 		CommandSourceStack src = ctx.getSource();
 		MinecraftServer server = src.getServer();
 
 		if (players == null) {
 			if (state == GBServerState.isGloballyEnabled()) {
-				throw new CommandRuntimeException(Component.literal(GamemodeBuild.NAME + " is already " + (state ? "enabled" : "disabled")));
+				throw SAME_STATE.create(state);
 			}
 
 			GBServerState.setGloballyEnabled(server, state);
@@ -135,7 +136,7 @@ public final class GamemodeBuildCommand {
 			} else {
 				GBConfigs.SERVER.addToBlacklist(name, entry, true);
 			}
-			GBNetwork.CHANNEL.send(PacketDistributor.ALL.noArg(), new ListUpdateMessage(ListUpdateMessage.Operation.ADD, whitelist, name, entry));
+			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.ADD, whitelist, name, entry));
 			ctx.getSource().sendSuccess(() -> Component.literal("Added '" + entry + "' to " + name + (whitelist ? " whitelist" : " blacklist")), false);
 
 			return Command.SINGLE_SUCCESS;
@@ -151,7 +152,7 @@ public final class GamemodeBuildCommand {
 			boolean found = whitelist ? GBConfigs.SERVER.removeFromWhitelist(name, entry, true) : GBConfigs.SERVER.removeFromBlacklist(name, entry, true);
 			if (!found) throw FILTER_DID_NOT_EXIST.create();
 
-			GBNetwork.CHANNEL.send(PacketDistributor.ALL.noArg(), new ListUpdateMessage(ListUpdateMessage.Operation.REMOVE, whitelist, name, entry));
+			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.REMOVE, whitelist, name, entry));
 			ctx.getSource().sendSuccess(() -> Component.literal("Removed '" + entry + "' from " + name + (whitelist ? " whitelist" : " blacklist")), false);
 
 			return Command.SINGLE_SUCCESS;
@@ -163,7 +164,7 @@ public final class GamemodeBuildCommand {
 			String name = StringArgumentType.getString(ctx, "name");
 			int count = whitelist ? GBConfigs.SERVER.clearWhitelist(name, true) : GBConfigs.SERVER.clearBlacklist(name, true);
 
-			GBNetwork.CHANNEL.send(PacketDistributor.ALL.noArg(), new ListUpdateMessage(ListUpdateMessage.Operation.CLEAR, whitelist, name, null));
+			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.CLEAR, whitelist, name, null));
 			ctx.getSource().sendSuccess(() -> Component.literal("Removed " + count + " " +  (whitelist ? " whitelist" : " blacklist") + " entries from " + name), false);
 
 			return Command.SINGLE_SUCCESS;

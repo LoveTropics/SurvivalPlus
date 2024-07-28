@@ -1,5 +1,15 @@
 package com.lovetropics.gamemodebuild;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.config.ModConfigEvent;
+import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.ModConfigSpec.BooleanValue;
+import org.apache.commons.lang3.tuple.Pair;
+
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -9,21 +19,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import net.minecraftforge.fml.event.config.ModConfigEvent;
-import org.apache.commons.lang3.tuple.Pair;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import net.minecraftforge.common.ForgeConfigSpec;
-import net.minecraftforge.common.ForgeConfigSpec.BooleanValue;
-import net.minecraftforge.common.ForgeConfigSpec.ConfigValue;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
-import net.minecraftforge.fml.common.Mod.EventBusSubscriber.Bus;
-
-@EventBusSubscriber (modid = GamemodeBuild.MODID, bus = Bus.MOD)
+@EventBusSubscriber(modid = GamemodeBuild.MODID, bus = EventBusSubscriber.Bus.MOD)
 public class GBConfigs {
 
 	public static class ItemList {
@@ -53,7 +49,7 @@ public class GBConfigs {
 		final String defaultList = "default";
 
 		Map<String, ItemList> lists = new HashMap<>();
-		final ConfigValue<String> listsConfig;
+		final ModConfigSpec.ConfigValue<String> listsConfig;
 
 		final BooleanValue enabled;
 		final BooleanValue removeBreakSpeedDebuff;
@@ -61,7 +57,7 @@ public class GBConfigs {
 
 		final Map<String, ItemFilter> filters = new HashMap<>();;
 
-		Server(ForgeConfigSpec.Builder builder) {
+		Server(ModConfigSpec.Builder builder) {
 			gson = new GsonBuilder().create();
 			
 			lists.put("default", new ItemList());
@@ -192,11 +188,11 @@ public class GBConfigs {
 		}
 	}
 
-	static final        ForgeConfigSpec serverSpec;
+	static final        ModConfigSpec serverSpec;
 	public static final Server          SERVER;
 
 	static {
-		final Pair<Server, ForgeConfigSpec> specPair = new ForgeConfigSpec.Builder().configure(Server::new);
+		final Pair<Server, ModConfigSpec> specPair = new ModConfigSpec.Builder().configure(Server::new);
 		serverSpec = specPair.getRight();
 		SERVER = specPair.getLeft();
 	}
