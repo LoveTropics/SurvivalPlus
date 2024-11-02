@@ -53,11 +53,13 @@ public class ItemFilterArgument implements ArgumentType<ItemFilterArgument.Resul
 		}
 
 		if (reader.canRead(1) && reader.peek() == '#') {
-			reader.read();
-			var tag = reader.readString();
-			var set = items.get(TagKey.create(Registries.ITEM, ResourceLocation.parse(tag)));
-			if (set.isEmpty()) throw UNKNOWN_TAG.create(tag);
-			return new TagResult(set.get());
+			reader.skip();
+			ResourceLocation tagId = ResourceLocation.read(reader);
+			var tag = items.get(TagKey.create(Registries.ITEM, tagId));
+			if (tag.isEmpty()) {
+				throw UNKNOWN_TAG.create(tagId);
+			}
+			return new TagResult(tag.get());
 		}
 
 		return new ItemResult(parser.parse(reader).item());
