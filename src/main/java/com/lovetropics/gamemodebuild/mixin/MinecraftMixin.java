@@ -1,7 +1,6 @@
 package com.lovetropics.gamemodebuild.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
-import com.lovetropics.gamemodebuild.container.GBStackMarker;
 import com.lovetropics.gamemodebuild.message.SetGamemodeBuildSlotPacket;
 import com.lovetropics.gamemodebuild.state.GBClientState;
 import net.minecraft.client.Minecraft;
@@ -9,7 +8,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.neoforged.neoforge.network.PacketDistributor;
