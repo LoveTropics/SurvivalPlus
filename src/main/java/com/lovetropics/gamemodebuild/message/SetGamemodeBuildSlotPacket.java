@@ -59,7 +59,6 @@ public record SetGamemodeBuildSlotPacket(BlockPos blockPos) implements CustomPac
         }
 
         GBStackMarker.mark(itemStack);
-        itemStack.setCount(itemStack.getMaxStackSize());
 
         pickItem(player, itemStack);
     }
