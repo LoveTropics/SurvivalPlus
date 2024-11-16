@@ -26,6 +26,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public record SetGamemodeBuildSlotPacket(short slotNum, BlockPos blockPos)  implements CustomPacketPayload {
     public static final Type<SetGamemodeBuildSlotPacket> TYPE = new Type<>(GamemodeBuild.rl("set_slot"));
@@ -53,7 +54,7 @@ public record SetGamemodeBuildSlotPacket(short slotNum, BlockPos blockPos)  impl
 
                     FeatureFlagSet featureFlags = player.level().enabledFeatures();
                     RegistryAccess registryAccess = player.level().registryAccess();
-                    List<ItemStack> itemStacks = GBConfigs.SERVER.getFilter(GBPlayerStore.getList(player)).getAllStacks(featureFlags, registryAccess);
+                    Predicate<ItemStack> itemStacks = GBConfigs.SERVER.getFilter(GBPlayerStore.getList(player)).getStackPredicate(featureFlags, registryAccess);
 
                     BlockState blockstate = player.level().getBlockState(packet.blockPos);
                     if (blockstate.isAir()) {
@@ -68,7 +69,7 @@ public record SetGamemodeBuildSlotPacket(short slotNum, BlockPos blockPos)  impl
                         return;
                     }
 
-                    if(!itemStacks.stream().anyMatch(stack -> stack.is(itemstack.getItem()))) {
+                    if(!itemStacks.test(itemstack)) {
                         player.inventoryMenu.setRemoteSlot(packet.slotNum, itemstack);
                         player.inventoryMenu.broadcastChanges();
                         return;

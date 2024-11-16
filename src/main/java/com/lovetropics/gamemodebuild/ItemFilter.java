@@ -1,5 +1,6 @@
 package com.lovetropics.gamemodebuild;
 
+import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
 import net.minecraft.Util;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.RegistryAccess;
@@ -66,15 +67,25 @@ public class ItemFilter {
 	private final List<Predicate<Item>> whitelistPredicates;
 	private final List<Predicate<Item>> blacklistPredicates;
 	private final SingleKeyCache<Key, List<ItemStack>> cache;
+	private final SingleKeyCache<Key, Predicate<ItemStack>> predicateCache;
 
 	private ItemFilter(List<Predicate<Item>> whitelist, List<Predicate<Item>> blacklist) {
 		this.whitelistPredicates = new ArrayList<>(whitelist);
 		this.blacklistPredicates = new ArrayList<>(blacklist);
 		cache = Util.singleKeyCache(key -> computeStacks(key.featureFlags(), key.registryAccess()));
+		predicateCache = Util.singleKeyCache(key -> {
+			List<ItemStack> stacks = cache.getValue(key);
+			Set<ItemStack> set = new ObjectOpenCustomHashSet<>(stacks, ItemStackLinkedSet.TYPE_AND_TAG);
+			return set::contains;
+		});
 	}
-	
+
 	public List<ItemStack> getAllStacks(FeatureFlagSet enabledFeatures, RegistryAccess registryAccess) {
 		return cache.getValue(new Key(enabledFeatures, registryAccess));
+	}
+
+	public Predicate<ItemStack> getStackPredicate(FeatureFlagSet enabledFeatures, RegistryAccess registryAccess) {
+		return predicateCache.getValue(new Key(enabledFeatures, registryAccess));
 	}
 
 	private List<ItemStack> computeStacks(FeatureFlagSet enabledFeatures, HolderLookup.Provider registryAccess) {
