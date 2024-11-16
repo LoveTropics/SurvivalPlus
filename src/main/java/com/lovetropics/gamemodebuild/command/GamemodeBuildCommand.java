@@ -30,6 +30,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Optional;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -136,7 +137,7 @@ public final class GamemodeBuildCommand {
 			} else {
 				GBConfigs.SERVER.addToBlacklist(name, entry, true);
 			}
-			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.ADD, whitelist, name, entry));
+			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.ADD, whitelist, name, Optional.of(entry)));
 			ctx.getSource().sendSuccess(() -> Component.literal("Added '" + entry + "' to " + name + (whitelist ? " whitelist" : " blacklist")), false);
 
 			return Command.SINGLE_SUCCESS;
@@ -152,7 +153,7 @@ public final class GamemodeBuildCommand {
 			boolean found = whitelist ? GBConfigs.SERVER.removeFromWhitelist(name, entry, true) : GBConfigs.SERVER.removeFromBlacklist(name, entry, true);
 			if (!found) throw FILTER_DID_NOT_EXIST.create();
 
-			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.REMOVE, whitelist, name, entry));
+			PacketDistributor.sendToAllPlayers(new ListUpdateMessage(ListUpdateMessage.Operation.REMOVE, whitelist, name, Optional.of(entry)));
 			ctx.getSource().sendSuccess(() -> Component.literal("Removed '" + entry + "' from " + name + (whitelist ? " whitelist" : " blacklist")), false);
 
 			return Command.SINGLE_SUCCESS;
