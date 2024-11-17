@@ -70,6 +70,7 @@ public final class GBServerState {
             player.displayClientMessage(Component.literal(GamemodeBuild.NAME + " deactivated"), true);
         }
         sendPlayerState(player);
+		player.closeContainer();
     }
 
 	public static void notifyDisabled(ServerPlayer player) {

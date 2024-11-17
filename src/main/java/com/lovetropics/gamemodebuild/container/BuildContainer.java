@@ -270,8 +270,8 @@ public class BuildContainer extends AbstractContainerMenu {
 	}
 	
 	@Override
-	public boolean stillValid(Player playerIn) {
-		return true;
+	public boolean stillValid(Player player) {
+		return GamemodeBuild.isActive(player);
 	}
 	
 	@Override
