@@ -1,9 +1,9 @@
 package com.lovetropics.gamemodebuild.container;
 
+import com.lovetropics.gamemodebuild.GamemodeBuild;
 import com.lovetropics.gamemodebuild.client.BuildScreen;
 import com.lovetropics.gamemodebuild.message.OpenBuildInventoryMessage;
 import com.lovetropics.gamemodebuild.state.GBClientState;
-import com.lovetropics.gamemodebuild.state.GBPlayerStore;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.player.LocalPlayer;
@@ -46,7 +46,7 @@ public final class PlayerInventoryHooks {
 
 	@SubscribeEvent
 	public static void onPickup(ItemEntityPickupEvent.Pre event) {
-		if (GBStackMarker.isMarked(event.getItemEntity().getItem()) != GBPlayerStore.isActive(event.getPlayer())) {
+		if (GBStackMarker.isMarked(event.getItemEntity().getItem()) != GamemodeBuild.isActive(event.getPlayer())) {
 			event.setCanPickup(TriState.FALSE);
 		}
 	}
